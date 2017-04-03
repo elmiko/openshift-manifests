@@ -50,7 +50,7 @@ objects:
           - name: ${APPNAME}
             image: docker.io/elmiko/var-sandbox:training
             env:
-              - name: SPARK_MASTER
+              - name: VAR_SPARK_MASTER
                 value: ${SPARK_MASTER}
             ports:
               - containerPort: 8080
