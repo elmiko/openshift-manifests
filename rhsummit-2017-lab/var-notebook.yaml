@@ -48,7 +48,10 @@ objects:
       spec:
         containers:
           - name: ${APPNAME}
-            image: docker.io/willb/workshop:notebook
+            image: docker.io/elmiko/workshop-notebook:training
+            env:
+              - name: JUPYTER_NOTEBOOK_PASSWORD
+                value: developer
             ports:
               - containerPort: 8888
                 protocol: TCP
