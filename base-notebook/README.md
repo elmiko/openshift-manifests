@@ -6,7 +6,7 @@ quickly spawn notebooks with custom image and passwords.
 
 ## instructions
 
-1. `create -f base-notebook.yaml`
+1. `oc create -f base-notebook.yaml`
 1. `oc new-app --template base-notebook -p IMAGE=my/image/uri -p PASSWORD=secret`
 
 If no `IMAGE` or `PASSWORD` is specified, the template will use
