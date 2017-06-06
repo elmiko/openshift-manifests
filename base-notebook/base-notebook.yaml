@@ -52,6 +52,9 @@ objects:
             ports:
               - containerPort: 8888
                 protocol: TCP
+            env:
+              - name: JUPYTER_NOTEBOOK_PASSWORD
+                value: ${PASSWORD}
 
 parameters:
   - name: APPNAME
@@ -63,3 +66,5 @@ parameters:
     description: notebook image to load
     required: true
     value: docker.io/radanalyticsio/base-notebook
+  - name: PASSWORD
+    description: a password for the notebook
