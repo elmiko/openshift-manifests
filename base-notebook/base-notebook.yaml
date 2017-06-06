@@ -62,3 +62,4 @@ parameters:
   - name: IMAGE
     description: notebook image to load
     required: true
+    value: docker.io/radanalyticsio/base-notebook
