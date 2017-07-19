@@ -1,0 +1,101 @@
+kind: List
+apiVersion: v1
+metadata: {}
+
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: var-sandbox
+  spec: {}
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: var-sandbox
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/radanalyticsio/var-sandbox
+        ref: master
+    strategy:
+      type: Docker
+    output:
+      to:
+        kind: ImageStreamTag
+        name: var-sandbox:latest
+
+- kind: Template
+  apiVersion: v1
+  template: var-sandbox-from-build
+  metadata:
+    name: var-sandbox-from-build
+  objects:
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${APPNAME}
+    spec:
+      ports:
+        - protocol: TCP
+          port: 8080
+          targetPort: 8080
+      selector:
+        name: ${APPNAME}
+
+  - kind: Route
+    apiVersion: v1
+    metadata:
+      name: ${APPNAME}
+    spec:
+      host: ${WEB_ROUTE_HOSTNAME}
+      to:
+        kind: Service
+        name: ${APPNAME}
+
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APPNAME}
+    spec:
+      strategy:
+        type: Rolling
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - ${APPNAME}
+            from:
+              kind: ImageStreamTag
+              name: var-sandbox:latest
+      replicas: 1
+      selector:
+        name: ${APPNAME}
+      template:
+        metadata:
+          labels:
+            name: ${APPNAME}
+        spec:
+          containers:
+            - name: ${APPNAME}
+              image: var-sandbox:latest
+              env:
+                - name: VAR_SPARK_MASTER
+                  value: ${SPARK}
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+
+  parameters:
+    - name: APPNAME
+      description: the application name
+      value: var-sandbox
+    - name: SPARK
+      description: connection string for the spark master
+    - name: WEB_ROUTE_HOSTNAME
+      description: The hostname used to create an external route to the webui
+
