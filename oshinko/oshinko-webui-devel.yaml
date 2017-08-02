@@ -1,8 +1,8 @@
 kind: Template
 apiVersion: v1
-template: oshinko-webui
+template: oshinko-webui-devel
 metadata:
-  name: oshinko-webui
+  name: oshinko-webui-devel
 objects:
 
 - apiVersion: v1
@@ -23,13 +23,13 @@ objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: oshinko-webui
+    name: oshinko-webui-devel
   spec: {}
 
 - kind: BuildConfig
   apiVersion: v1
   metadata:
-    name: oshinko-webui
+    name: oshinko-webui-devel
   spec:
     source:
       type: Git
@@ -41,7 +41,7 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: oshinko-webui:latest
+        name: oshinko-webui-devel:latest
 
 - kind: Service
   apiVersion: v1
@@ -74,7 +74,7 @@ objects:
             - ${OSHINKO_WEB_NAME}
           from:
             kind: ImageStreamTag
-            name: oshinko-webui:latest
+            name: oshinko-webui-devel:latest
     replicas: 1
     selector:
       name: ${OSHINKO_WEB_NAME}
@@ -96,7 +96,7 @@ objects:
               - name: OSHINKO_REFRESH_INTERVAL
                 value: ${OSHINKO_REFRESH_INTERVAL}
               - name: OSHINKO_WEB_DEBUG
-                value: true
+                value: "true"
             readinessProbe:
               failureThreshold: 3
               httpGet:
@@ -134,12 +134,12 @@ parameters:
   value: radanalyticsio/openshift-spark
 - name: OSHINKO_WEB_NAME
   description: Name of the oshinko web service
-  value: "oshinko-web"
+  value: "oshinko-web-devel"
 - name: OSHINKO_WEB_ROUTE_HOSTNAME
   description: The hostname used to create the external route for the webui
 - name: OSHINKO_DEPLOYMENT_NAME
   description: Name of the oshinko deployment
-  value: "oshinko"
+  value: "oshinko-devel"
 - name: OSHINKO_REFRESH_INTERVAL
   value: "5"
   description: Refresh interval for updating cluster list in seconds
