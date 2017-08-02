@@ -1,0 +1,151 @@
+kind: Template
+apiVersion: v1
+template: oshinko-webui
+metadata:
+  name: oshinko-webui
+objects:
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: oshinko
+
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: oshinko-edit
+  roleRef:
+    name: edit
+  subjects:
+    - kind: ServiceAccount
+      name: oshinko
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: oshinko-webui
+  spec: {}
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: oshinko-webui
+  spec:
+    source:
+      type: Git
+      git:
+        uri: ${GIT_URI}
+        ref: ${GIT_REF}
+    strategy:
+      type: Docker
+    output:
+      to:
+        kind: ImageStreamTag
+        name: oshinko-webui:latest
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${OSHINKO_WEB_NAME}
+    labels:
+      name: ${OSHINKO_WEB_NAME}
+  spec:
+    ports:
+      - name: o-web-port
+        protocol: TCP
+        port: 8080
+        targetPort: 8080
+    selector:
+      name: ${OSHINKO_WEB_NAME}
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: ${OSHINKO_DEPLOYMENT_NAME}
+  spec:
+    strategy:
+      type: Rolling
+    triggers:
+      - type: ConfigChange
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - ${OSHINKO_WEB_NAME}
+          from:
+            kind: ImageStreamTag
+            name: oshinko-webui:latest
+    replicas: 1
+    selector:
+      name: ${OSHINKO_WEB_NAME}
+    template:
+      metadata:
+        labels:
+          name: ${OSHINKO_WEB_NAME}
+      spec:
+        containers:
+          - name: ${OSHINKO_WEB_NAME}
+            image: oshinko-webui:latest
+            ports:
+              - name: o-web-port
+                containerPort: 8080
+                protocol: TCP
+            env:
+              - name: OSHINKO_SPARK_IMAGE
+                value: ${OSHINKO_CLUSTER_IMAGE}
+              - name: OSHINKO_REFRESH_INTERVAL
+                value: ${OSHINKO_REFRESH_INTERVAL}
+              - name: OSHINKO_WEB_DEBUG
+                value: true
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /
+                port: 8080
+                scheme: HTTP
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 1
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /
+                port: 8080
+                scheme: HTTP
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 1
+        serviceAccount: oshinko
+
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: ${OSHINKO_WEB_NAME}
+  spec:
+    host: ${OSHINKO_WEB_ROUTE_HOSTNAME}
+    to:
+      kind: Service
+      name: ${OSHINKO_WEB_NAME}
+
+parameters:
+- name: OSHINKO_CLUSTER_IMAGE
+  description: Full name of the spark image to use when creating clusters
+  required: true
+  value: radanalyticsio/openshift-spark
+- name: OSHINKO_WEB_NAME
+  description: Name of the oshinko web service
+  value: "oshinko-web"
+- name: OSHINKO_WEB_ROUTE_HOSTNAME
+  description: The hostname used to create the external route for the webui
+- name: OSHINKO_DEPLOYMENT_NAME
+  description: Name of the oshinko deployment
+  value: "oshinko"
+- name: OSHINKO_REFRESH_INTERVAL
+  value: "5"
+  description: Refresh interval for updating cluster list in seconds
+- name: GIT_URI
+  description: The Git URI to build oshinko-webui from
+  value: "https://github.com/radanalyticsio/oshinko-webui"
+- name: GIT_REF
+  description: The reference within the Git repository to build from
+  value: "master"
