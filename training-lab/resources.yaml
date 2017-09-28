@@ -182,6 +182,29 @@ items:
       - name: ROUTE_HOSTNAME
         description: a hostname for the route
 
+  - kind: ImageStream
+    apiVersion: v1
+    metadata:
+      name: var-sandbox
+    spec: {}
+
+  - kind: BuildConfig
+    apiVersion: v1
+    metadata:
+      name: var-sandbox
+    spec:
+      source:
+        type: Git
+        git:
+          uri: https://github.com/radanalyticsio/var-sandbox
+          ref: master
+      strategy:
+        type: Docker
+      output:
+        to:
+          kind: ImageStreamTag
+          name: var-sandbox:latest
+
   - kind: Template
     apiVersion: v1
     template: var-sandbox
@@ -193,8 +216,6 @@ items:
       apiVersion: v1
       metadata:
         name: ${APPNAME}
-        labels:
-          name: ${APPNAME}
       spec:
         ports:
           - protocol: TCP
@@ -208,7 +229,7 @@ items:
       metadata:
         name: ${APPNAME}
       spec:
-        host: ${ROUTE_HOSTNAME}
+        host: ${WEB_ROUTE_HOSTNAME}
         to:
           kind: Service
           name: ${APPNAME}
@@ -222,6 +243,14 @@ items:
           type: Rolling
         triggers:
           - type: ConfigChange
+          - type: ImageChange
+            imageChangeParams:
+              automatic: true
+              containerNames:
+                - ${APPNAME}
+              from:
+                kind: ImageStreamTag
+                name: var-sandbox:latest
         replicas: 1
         selector:
           name: ${APPNAME}
@@ -232,26 +261,19 @@ items:
           spec:
             containers:
               - name: ${APPNAME}
-                image: docker.io/elmiko/var-sandbox:training
+                image: var-sandbox:latest
                 env:
                   - name: VAR_SPARK_MASTER
-                    value: ${SPARK_MASTER}
+                    value: ${SPARK}
                 ports:
                   - containerPort: 8080
                     protocol: TCP
-                readinessProbe:
-                  httpGet:
-                    path: /
-                    port: 8080
-                  initialDelaySeconds: 15
-                  timeoutSeconds: 1
 
     parameters:
       - name: APPNAME
         description: the application name
         value: var-sandbox
-      - name: SPARK_MASTER
+      - name: SPARK
         description: connection string for the spark master
-        value: local[*]
-      - name: ROUTE_HOSTNAME
-        description: a hostname for the route
+      - name: WEB_ROUTE_HOSTNAME
+        description: The hostname used to create an external route to the webui
