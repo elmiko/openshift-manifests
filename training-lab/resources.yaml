@@ -167,7 +167,7 @@ items:
           spec:
             containers:
               - name: ${APPNAME}
-                image: docker.io/radanalyticsio/workshop-notebook
+                image: docker.io/radanalyticsio/workshop-notebook:serving
                 env:
                   - name: JUPYTER_NOTEBOOK_PASSWORD
                     value: developer
@@ -277,3 +277,51 @@ items:
         description: connection string for the spark master
       - name: WEB_ROUTE_HOSTNAME
         description: The hostname used to create an external route to the webui
+
+  - kind: Template
+    apiVersion: v1
+    template: simple-model-server
+    metadata:
+      name: simple-model-server
+    objects:
+
+    - kind: Service
+      apiVersion: v1
+      metadata:
+        name: ${APPNAME}
+      spec:
+        ports:
+          - protocol: TCP
+            port: 8080
+            targetPort: 8080
+        selector:
+          name: ${APPNAME}
+
+    - kind: DeploymentConfig
+      apiVersion: v1
+      metadata:
+        name: ${APPNAME}
+      spec:
+        strategy:
+          type: Rolling
+        triggers:
+          - type: ConfigChange
+        replicas: 1
+        selector:
+          name: ${APPNAME}
+        template:
+          metadata:
+            labels:
+              name: ${APPNAME}
+          spec:
+            containers:
+              - name: ${APPNAME}
+                image: docker.io/willb/simple-model-server
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+
+    parameters:
+      - name: APPNAME
+        description: the application name
+        value: simple-model-server
